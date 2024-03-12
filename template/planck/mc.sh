@@ -11,14 +11,14 @@ date
 
 # Make a fake focalplane
 
-freq=150
+freq=145 #sat
 focalplane=focalplane_${freq}GHz.h5
 if [[ ! -e $focalplane ]]; then
     echo "Generating $focalplane"
     toast_fake_focalplane \
 	--min_pix 100 \
 	--fov_deg 10 \
-	--psd_net 1e-3 \
+	--psd_net 1e-5 \
 	--psd_alpha 1.0 \
 	--psd_fknee 0.05 \
 	--bandcenter_ghz ${freq} \
@@ -51,32 +51,32 @@ if [[ ! -e $schedule ]]; then
 	--out ${schedule} \
 	>& ${schedule/.txt/.log}
 
-    # Split the schedule into many short files
-    echo "Splitting the schedule"
+ #    # Split the schedule into many short files
+ #    echo "Splitting the schedule"
 
-    let nline=`wc -l $schedule | awk '{print $1}'`-3
-    echo "Found $nline entries in $schedule"
+ #    let nline=`wc -l $schedule | awk '{print $1}'`-3
+ #    echo "Found $nline entries in $schedule"
 
-    head -n 3 $schedule > header
-    tail -n $nline $schedule > body
+ #    head -n 3 $schedule > header
+ #    tail -n $nline $schedule > body
 
-    outdir=split_schedule
-    mkdir -p $outdir
+ #    outdir=split_schedule
+ #    mkdir -p $outdir
 
-    split \
-	--numeric-suffixes \
-	--lines=1 \
-	--suffix-length=3 \
-	--additional-suffix=".txt" \
-	body \
-	${outdir}/schedule
+ #    split \
+	# --numeric-suffixes \
+	# --lines=1 \
+	# --suffix-length=3 \
+	# --additional-suffix=".txt" \
+	# body \
+	# ${outdir}/schedule
 
-    for fname in ${outdir}/*txt; do
-	mv ${fname} temp
-	cat header temp > ${fname}
-    done
+ #    for fname in ${outdir}/*txt; do
+	# mv ${fname} temp
+	# cat header temp > ${fname}
+ #    done
 
-    rm -f header body temp
+ #    rm -f header body temp
 fi
 
 # Write a default parameter file that can be used as a reference
@@ -97,52 +97,43 @@ params=params.toml
 
 # Simulate
 
+for mc in {0..99}; do
+map_path="../../planck_like_E_maps/map_$mc.fits" 
+
 logdir=logs
 mkdir -p $logdir
-outdir=out/schedule
+
+outdir=out/${mc}
 mkdir -p $outdir
-logfile=$logdir/schedule.log
-if [[ -e $logfile ]]; then
-    echo "$(date): $logfile exists"
+
+logfile=${logdir}/${mc}.log
+if [ -e $logfile ]; then
+    echo "$(date) : $logfile exists"
 else
     date
-    echo "$(date): Writing $logfile"
+    echo "$(date) : Writing $logfile"
+    # Set the realization index for every operator one
+    # might enable in the workflow, even when most
+    # are not used.  A proper Monte Carlo workflow
+    # should do this automatically but toast_sim_ground.py
+    # does not support it presently.
     nice -n 19 mpiexec -n $ntask \
-        toast_sim_ground.py \
-        --config $params \
-        --focalplane $focalplane \
-        --schedule $schedule \
-        --out $outdir \
-        >& ${logfile}
-    echo "$(date): Done"
+     toast_sim_ground.py \
+     --config $params \
+     --focalplane $focalplane \
+     --schedule $schedule \
+     --out $outdir \
+     --scan_healpix_map.file $map_path \
+     --sim_ground.realization $mc \
+     --sim_atmosphere.realization $mc \
+     --sim_sss.realization $mc \
+     --convolve_time_constant.realization $mc \
+     --gain_scrambler.realization $mc \
+     --sim_noise.realization $mc \
+     --yield_cut.realization $mc \
+     --deconvolve_time_constant.realization $mc \
+     >& ${logfile}
 fi
-
-for schedule in split_schedule/*txt; do
-    rootname=$(basename $schedule .txt)
-
-    logdir=split_logs
-    mkdir -p $logdir
-
-    outdir=out/${rootname}
-    mkdir -p $outdir
-
-    logfile=${logdir}/${rootname}.log
-    if [[ -e $logfile ]]; then
-    	echo "$(date) : $logfile exists"
-    else
-    	date
-    	echo "$(date) : Writing $logfile"
-    	nice -n 19 mpiexec -n $ntask \
-    	     toast_sim_ground.py \
-    	     --config $params \
-    	     --focalplane $focalplane \
-    	     --schedule $schedule \
-    	     --out $outdir \
-    	     >& ${logfile}
-    	echo "$(date) : Done"
-    	# exit
-    fi
-
 done
 
 echo "$(date) : All done"

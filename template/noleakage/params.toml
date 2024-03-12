@@ -9,7 +9,7 @@
     boresight_azel = "boresight_azel" # Observation shared key for boresight AZ/EL
     boresight_radec = "boresight_radec" # Observation shared key for boresight RA/DEC
     det_data = "signal" # Observation detdata key to initialize
-    det_data_units = "unit K" # Output units if creating detector data
+    det_data_units = "unit uK" # Output units if creating detector data
     det_flags = "flags" # Observation detdata key for flags to initialize
     detset_key = "pixel" # If specified, use this column of the focalplane detector_data to group detectors
     distribute_time = false # Distribute observation data along the time axis rather than detector axis
@@ -62,8 +62,8 @@
     throw_leftright_interval = "throw_leftright" # Interval name for left to right scans + turnarounds
     throw_rightleft_interval = "throw_rightleft" # Interval name for right to left scans + turnarounds
     times = "times" # Observation shared key for timestamps
-    timezone = 0 # The (integer) timezone offset in hours from UTC to apply to schedule
-    turn_leftright_interval = "turn_leftright" # Interval name for turnarounds after left to right scans
+    track_azimuth = false # If True, the azimuth throw is continually adjusted to center the field.    
+turn_leftright_interval = "turn_leftright" # Interval name for turnarounds after left to right scans
     turn_rightleft_interval = "turn_rightleft" # Interval name for turnarounds after right to left scans
     turnaround_interval = "turnaround" # Interval name for turnarounds
     turnaround_mask = 3 # Bit mask to raise turnaround flags with
@@ -148,9 +148,9 @@
     class = "toast.ops.scan_healpix.ScanHealpixMap"
     API = 0 # Internal interface version for this operator
     det_data = "signal" # Observation detdata key for accumulating output.  Use ';' if different files are applied to different flavors
-    det_data_units = "unit K" # Output units if creating detector data
+    det_data_units = "unit uK" # Output units if creating detector data
     enabled = true # If True, this class instance is marked as enabled
-    file = "../map.fits" # Path to healpix FITS file.  Use ';' if providing multiple files
+    file = "None" # Path to healpix FITS file.  Use ';' if providing multiple files
     kernel_implementation = "0" # Which kernel implementation to use (DEFAULT, COMPILED, NUMPY, JAX).
     name = "scan_healpix_map" # The 'name' of this class instance
     pixel_dist = "pixel_dist" # The Data key where the PixelDistribution object is located
@@ -165,7 +165,7 @@
     class = "toast.ops.scan_wcs.ScanWCSMap"
     API = 0 # Internal interface version for this operator
     det_data = "signal" # Observation detdata key for accumulating output
-    det_data_units = "unit K" # Output units if creating detector data
+    det_data_units = "unit uK" # Output units if creating detector data
     enabled = false # If True, this class instance is marked as enabled
     file = "None" # Path to FITS file
     kernel_implementation = "0" # Which kernel implementation to use (DEFAULT, COMPILED, NUMPY, JAX).
@@ -190,7 +190,7 @@
     debug_spectrum = false # If True, dump out Kolmogorov debug files
     debug_tod = false # If True, dump TOD to pickle files
     det_data = "signal" # Observation detdata key for accumulating atmosphere timestreams
-    det_data_units = "unit K" # Output units if creating detector data
+    det_data_units = "unit uK" # Output units if creating detector data
     det_flag_mask = 1 # Bit mask value for optional detector flagging
     det_flags = "flags" # Observation detdata key for flags to use
     detector_pointing = "None" # Operator that translates boresight Az/El pointing into detector frame
@@ -230,7 +230,7 @@
     API = 0 # Internal interface version for this operator
     component = 663056 # The simulation component index
     det_data = "signal" # Observation detdata key for accumulating simulated timestreams
-    det_data_units = "unit K" # Output units if creating detector data
+    det_data_units = "unit uK" # Output units if creating detector data
     detector_pointing = "None" # Operator that translates boresight Az/El pointing into detector frame
     enabled = false # If True, this class instance is marked as enabled
     fwhm = "1.00000000000000e+01 arcmin" # ground map smoothing scale
@@ -295,7 +295,7 @@
     API = 0 # Internal interface version for this operator
     component = 0 # The noise component index
     det_data = "signal" # Observation detdata key for accumulating noise timestreams
-    det_data_units = "unit K" # Output units if creating detector data
+    det_data_units = "unit uK" # Output units if creating detector data
     enabled = true # If True, this class instance is marked as enabled
     kernel_implementation = "0" # Which kernel implementation to use (DEFAULT, COMPILED, NUMPY, JAX).
     name = "sim_noise" # The 'name' of this class instance
@@ -438,7 +438,7 @@
 [operators.crosslinking]
     class = "toast.ops.crosslinking.CrossLinking"
     API = 0 # Internal interface version for this operator
-    det_data_units = "unit K" # Output units if creating detector data
+    det_data_units = "unit uK" # Output units if creating detector data
     det_flag_mask = 1 # Bit mask value for optional detector flagging
     det_flags = "flags" # Observation detdata key for flags to use
     enabled = false # If True, this class instance is marked as enabled
@@ -589,7 +589,7 @@
     binned = "binned" # The Data key where the binned map should be stored
     covariance = "covariance" # The Data key containing the noise covariance PixelData instance
     det_data = "signal" # Observation detdata key for the timestream data
-    det_data_units = "unit K" # Desired timestream units
+    det_data_units = "unit uK" # Desired timestream units
     det_flag_mask = 1 # Bit mask value for optional detector flagging
     det_flags = "flags" # Observation detdata key for flags to use
     enabled = true # If True, this class instance is marked as enabled
@@ -631,15 +631,15 @@
     save_cleaned = false # If True, save the template-subtracted detector timestreams
     solve_rcond_threshold = 1e-08 # When solving, minimum value for inverse pixel condition number cut.
     template_matrix = "None" # This must be an instance of a template matrix operator
-    write_binmap = true # If True, write the projected map *before* template subtraction
-    write_cov = true # If True, write the white noise covariance matrices.
+    write_binmap = false # If True, write the projected map *before* template subtraction
+    write_cov = false # If True, write the white noise covariance matrices.
     write_hdf5 = false # If True, outputs are in HDF5 rather than FITS format.
     write_hdf5_serial = false # If True, force serial HDF5 write of output maps.
-    write_hits = true # If True, write the hits map
+    write_hits = false # If True, write the hits map
     write_invcov = false # If True, write the inverse white noise covariance matrices.
     write_map = true # If True, write the projected map
     write_noiseweighted_map = false # If True, write the noise-weighted map
-    write_rcond = true # If True, write the reciprocal condition numbers.
+    write_rcond = false # If True, write the reciprocal condition numbers.
     write_solver_products = false # If True, write out equivalent solver products.
 
 [operators.pixels_healpix_radec_final]
@@ -705,7 +705,7 @@
     binned = "binned" # The Data key where the binned map should be stored
     covariance = "covariance" # The Data key containing the noise covariance PixelData instance
     det_data = "signal" # Observation detdata key for the timestream data
-    det_data_units = "unit K" # Desired timestream units
+    det_data_units = "unit uK" # Desired timestream units
     det_flag_mask = 1 # Bit mask value for optional detector flagging
     det_flags = "flags" # Observation detdata key for flags to use
     enabled = false # If True, this class instance is marked as enabled
@@ -736,7 +736,7 @@
     det_flags = "flags" # Observation detdata key for flags to use
     enabled = true # If True, this class instance is marked as enabled
     filter_flag_mask = 1 # Bit mask value for flagging samples that fail filtering
-    ground_filter_order = 5 # Order of a Legendre polynomial to fit as a function of azimuth.
+    ground_filter_order = 10 # Order of a Legendre polynomial to fit as a function of azimuth.
     hwp_angle = "hwp_angle" # Observation shared key for HWP angle
     hwp_filter_order = "None" # Order of HWP-synchronous signal filter.
     keep_final_products = false # If True, keep the map domain products in data after write
@@ -757,15 +757,17 @@
     shared_flag_mask = 1 # Bit mask value for optional telescope flagging
     shared_flags = "flags" # Observation shared key for telescope flags to use
     split_ground_template = false # Apply a different template for left and right scans
-    write_cov = true # If True, write the white noise covariance matrices.
+    write_binmap = false # If True, write the unfiltered map
+    write_cov = false # If True, write the white noise covariance matrices.
     write_hdf5 = false # If True, output maps are in HDF5 rather than FITS format.
     write_hdf5_serial = false # If True, force serial HDF5 write of output maps.
-    write_hits = true # If True, write the hits map
-    write_invcov = true # If True, write the inverse white noise covariance matrices.
+    write_hits = false # If True, write the hits map
+    write_invcov = false # If True, write the inverse white noise covariance matrices.
     write_map = true # If True, write the projected map
-    write_noiseweighted_map = true # If True, write the noise-weighted map
+    write_noiseweighted_binmap = false # If True, write the noise-weighted unfiltered map
+    write_noiseweighted_map = false # If True, write the noise-weighted map
     write_obs_matrix = false # Write the observation matrix
-    write_rcond = true # If True, write the reciprocal condition numbers.
+    write_rcond = false # If True, write the reciprocal condition numbers.
 
 [operators.mem_count]
     class = "toast.ops.memory_counter.MemoryCounter"
@@ -808,7 +810,7 @@
     class = "toast.templates.offset.offset.Offset"
     data = "None" # This must be an instance of a Data class (or None)
     det_data = "signal" # Observation detdata key for the timestream data
-    det_data_units = "unit K" # Desired units of detector data
+    det_data_units = "unit uK" # Desired units of detector data
     det_flag_mask = 1 # Bit mask value for solver flags
     det_flags = "flags" # Observation detdata key for solver flags to use
     enabled = true # If True, this class instance is marked as enabled

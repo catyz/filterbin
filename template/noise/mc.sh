@@ -98,7 +98,7 @@ params=params.toml
 # Simulate
 
 for mc in {1000..1099}; do
-map_path="None" 
+map_path="../../input_maps/empty_nside256.fits" 
 
 logdir=logs
 mkdir -p $logdir

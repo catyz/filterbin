@@ -18,7 +18,7 @@ if [[ ! -e $focalplane ]]; then
     toast_fake_focalplane \
 	--min_pix 100 \
 	--fov_deg 10 \
-	--psd_net 2.0e-6 \
+	--psd_net 1e-5 \
 	--psd_alpha 1.0 \
 	--psd_fknee 0.05 \
 	--bandcenter_ghz ${freq} \
@@ -97,8 +97,8 @@ params=params.toml
 
 # Simulate
 
-for mc in {0..99}; do
-map_path="../../lcdm_noBB_maps/map_$mc.fits" 
+for mc in {0..0}; do
+map_path="../input_maps/empty_nside64.fits" 
 
 logdir=logs
 mkdir -p $logdir

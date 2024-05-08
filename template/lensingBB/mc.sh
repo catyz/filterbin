@@ -98,7 +98,7 @@ params=params.toml
 # Simulate
 
 for mc in {0..99}; do
-map_path="../../lcdm_maps/map_$mc.fits" 
+map_path="../../input_maps/lcdm_maps/map_$mc.fits" 
 
 logdir=logs
 mkdir -p $logdir

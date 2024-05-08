@@ -244,7 +244,7 @@ def get_mll(mask_apo, nside, b, pol=True, purify_b=True):
     else:
         f = nmt.NmtField(mask_apo, [np.empty(12*nside**2)])
     w.compute_coupling_matrix(f, f, b)
-    return w.get_coupling_matrix(), w.get_bandpower_windows()
+    return w.get_coupling_matrix()#, w.get_bandpower_windows()
 
 def get_bl(nside):
     lmax = 3*nside-1
@@ -252,25 +252,28 @@ def get_bl(nside):
     fwhm = (8*np.log(2))**0.5 * sigmab
     return hp.gauss_beam(fwhm, lmax)
 
-def fl_itr(fl, pcl, bcl):
-    return fl + (pcl - fl * bcl) / bcl
+def fl_itr(fl, pcl, bcl, mll):
+    return fl +  (pcl - mll @ (fl * bcl) ) / bcl
 
-def get_fl(input_cl, pcl, bl, mll, niter=3):
-    bcl = mll @ (input_cl * bl**2)
-    fl_i = pcl / bcl
-    for j in range(niter):
-        fl_i = fl_itr(fl_i, pcl, bcl)
+def get_fl(cl, pcl, bl, mll, fskyw2, cl_th, niter=3):
+    bcl = bl**2 * cl
+    fl_i = pcl / (bl**2 * cl_th * fskyw2)
+    fl_i[:2] = 0
+    for j in range(niter):        
+        fl_i = fl_itr(fl_i, pcl, bcl, mll)
+        fl_i[:2] = 0
     return fl_i
 
-# def fl_itr(fl, cl_input, pcl, mll, bl, fskyw2):
-#     return fl + (pcl - (fl * mll *bl**2) @ cl_input)/(bl**2 * fskyw2 * cl_input)
+# def fl_itr(fl, pcl, bcl, mll):
+#     return fl +  (pcl - (mll @ (fl * bcl).T).T ) / bcl
 
-# def get_fl(cl_th, cl_input, pcl, bl, mll, fskyw2, niter=3):
-#     fl_i = pcl / (cl_th * bl**2 * fskyw2)
-#     fl_i[0:2] = 0
-#     for j in range(niter):
-#         fl_i = fl_itr(fl_i, cl_input, pcl, mll, bl, fskyw2)
-#         fl_i[0:2] = 0
+# def get_fl(cl, pcl, bl, mll, fskyw2, cl_th, niter=3):
+#     bcl = bl**2 * cl
+#     fl_i = pcl / (bl**2 * cl_th * fskyw2)
+#     fl_i[:,:2] = 0
+#     for j in range(niter):        
+#         fl_i = fl_itr(fl_i, pcl, bcl, mll)
+#         fl_i[:,:2] = 0
 #     return fl_i
 
 def get_P_bl(ell_centers, nside):

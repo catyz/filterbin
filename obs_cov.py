@@ -1,8 +1,10 @@
 import numpy as np
 import healpy as hp
-import matplotlib.pyplot as plt
 import scipy as sp
 from tqdm import tqdm
+import os
+import argparse
+import pymaster as nmt
 
 def get_Cl(nside, mode):
     lmax = 3*nside-1
@@ -10,15 +12,11 @@ def get_Cl(nside, mode):
     C_l = 1/l**2
     C_l[0:2] = 0
     
-    # sigmab = hp.nside2resol(nside) 
-    # fwhm = (8*np.log(2))**0.5 * sigmab
-    # bl = hp.gauss_beam(fwhm, lmax)
-    
-    if mode == 'EE':
+    if mode == 'E':
         C_l = np.array([np.zeros_like(C_l), C_l, np.zeros_like(C_l), np.zeros_like(C_l)]) # TT EE BB TE
-    if mode == 'BB':
+    if mode == 'B':
         C_l = np.array([np.zeros_like(C_l), np.zeros_like(C_l), C_l, np.zeros_like(C_l)])
-    return C_l #* bl**2
+    return C_l 
 
 def P_l2(ll, z):
     P2 = 3*(1-z**2)
@@ -152,22 +150,49 @@ def C_ana(nside, Cl, mask=None):
     return C
 
 def main():
-    nside = 64
-    hits = hp.ud_grade(hp.read_map('obsmat_nside128/out/0/filterbin_hits.fits'), nside)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--nside',
+        required=False,
+        default=128
+    )
+    parser.add_argument(
+        '--mode',
+        required=True,
+    )
+    parser.add_argument(
+        '--aposize',
+        required=False,
+        default=6
+    )
+    args = parser.parse_args()
+    
+    print('loading and apodizing R')
+    npix = 12*args.nside**2
+    hits = hp.read_map(f'obsmat_nside{args.nside}/out/0/filterbin_hits.fits')
     non_zero = np.where(hits!=0)[0]
-    
     mask = np.zeros_like(hits)
-    mask[non_zero] = 1
+    mask[non_zero] = 1    
+    mask_apo = nmt.mask_apodization(mask, args.aposize, 'C1')
+    Z = sp.sparse.diags_array(mask_apo)
+    ZZ = sp.sparse.block_diag([Z, Z])
+    R_unapo = sp.sparse.load_npz(f'obsmat_nside{args.nside}/obsmat.npz')[npix:, npix:]  
+    R = ZZ @ R_unapo
     
-    Cl_EEonly = get_Cl(nside, 'EE')
-    Cl_BBonly = get_Cl(nside, 'BB')
-    
-    C_E = C_ana(nside, Cl_EEonly, mask)
-    C_B = C_ana(nside, Cl_BBonly, mask)
-    
-    sp.sparse.save_npz(f'C_E_{nside}', C_E)
-    sp.sparse.save_npz(f'C_B_{nside}', C_B)
-    
+    C_path = f'C_{args.mode}_{args.nside}.npz'
+    if os.path.exists(C_path):        
+        print('loading masked cov')
+        C = sp.sparse.load_npz(C_path)        
+    else:
+        Cl = get_Cl(args.nside, args.mode)
+        C = C_ana(args.nside, Cl, mask)
+        sp.sparse.save_npz(C_path, C)
+        print('wrote masked cov')
+        
+    print('observing cov')
+    obs_C = R @ C @ R.T    
+    print('saving cov')
+    sp.sparse.save_npz(f'obs_{C_path}', obs_C)    
     print('DONE')
 
 if __name__ == "__main__":

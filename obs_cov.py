@@ -159,41 +159,49 @@ def main():
     parser.add_argument(
         '--mode',
         required=True,
+        type=str
     )
     parser.add_argument(
         '--aposize',
         required=False,
-        default=6
+        default=10, 
+        type=int
     )
     args = parser.parse_args()
     
     print('loading and apodizing R')
     npix = 12*args.nside**2
-    hits = hp.read_map(f'obsmat_nside{args.nside}/out/0/filterbin_hits.fits')
-    non_zero = np.where(hits!=0)[0]
-    mask = np.zeros_like(hits)
-    mask[non_zero] = 1    
-    mask_apo = nmt.mask_apodization(mask, args.aposize, 'C1')
+    qq, qu, uu = hp.read_map(f'obsmat_nside{args.nside}/out/0/filterbin_invcov.fits', field=[3,4,5])
+    mask = np.zeros(npix)
+    mask[qq!=0] = 1
+    tr = qq + uu
+    det = qq * uu - qu * qu
+    weight = 0.5 * (tr - np.sqrt(tr ** 2 - 4 * det) ) 
+    mask_apo = nmt.mask_apodization(weight, args.aposize, 'C2')
+    mask_apo /= np.sqrt(np.mean(mask_apo**2)) 
+    
+    R_unapo = sp.sparse.load_npz(f'obsmat_nside{args.nside}/obsmat.npz')
+    R_QU_unapo = R_unapo[npix:, npix:]
+    
     Z = sp.sparse.diags_array(mask_apo)
-    ZZ = sp.sparse.block_diag([Z, Z])
-    R_unapo = sp.sparse.load_npz(f'obsmat_nside{args.nside}/obsmat.npz')[npix:, npix:]  
+    ZZ = sp.sparse.block_diag([Z, Z, Z])
     R = ZZ @ R_unapo
+    R_QU = R[npix:, npix:]
     
     C_path = f'C_{args.mode}_{args.nside}.npz'
     if os.path.exists(C_path):        
-        print('loading masked cov')
+        print(f'loading {C_path}')
         C = sp.sparse.load_npz(C_path)        
     else:
         Cl = get_Cl(args.nside, args.mode)
         C = C_ana(args.nside, Cl, mask)
         sp.sparse.save_npz(C_path, C)
-        print('wrote masked cov')
+        print(f'wrote {C_path}')
         
     print('observing cov')
-    obs_C = R @ C @ R.T    
-    print('saving cov')
-    sp.sparse.save_npz(f'obs_{C_path}', obs_C)    
-    print('DONE')
+    obs_C = R_QU @ C @ R_QU.T    
+    sp.sparse.save_npz(f'apo{args.aposize}/obs_{C_path}', obs_C)    
+    print(f'DONE: saved obs_{C_path}')
 
 if __name__ == "__main__":
     main()

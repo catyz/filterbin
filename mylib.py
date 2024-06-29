@@ -46,6 +46,11 @@ def remove_almB(m):
     nside = hp.get_nside(m)
     almT, almE, almB = hp.map2alm(m)
     return hp.alm2map((almT, almE, np.zeros_like(almE)), nside)
+
+def remove_almE(m):
+    nside = hp.get_nside(m)
+    almT, almE, almB = hp.map2alm(m)
+    return hp.alm2map((almT, np.zeros_like(almE), almB), nside)
     
 def wiener_filter(full_map, signal_cl, noise_cl):
     almT, almE, almB = hp.map2alm(full_map)
@@ -237,12 +242,12 @@ def compute_master(f_a, f_b, wsp, leakage=None):
     cl_decoupled = wsp.decouple_cell(cl_coupled)
     return cl_decoupled
 
-def get_mll(mask_apo, nside, b, pol=True, purify_b=True):
+def get_mll(mask_apo, nside, b, pol=False, purify_b=False):
     w = nmt.NmtWorkspace()
     if pol:
-        f = nmt.NmtField(mask_apo, [np.empty(12*nside**2), np.empty(12*nside**2)], purify_b=purify_b)
+        f = nmt.NmtField(mask_apo, np.empty((2, 12*nside**2)), purify_b=purify_b)
     else:
-        f = nmt.NmtField(mask_apo, [np.empty(12*nside**2)])
+        f = nmt.NmtField(mask_apo, np.empty((1,12*nside**2)))
     w.compute_coupling_matrix(f, f, b)
     return w.get_coupling_matrix()#, w.get_bandpower_windows()
 
@@ -252,15 +257,14 @@ def get_bl(nside):
     fwhm = (8*np.log(2))**0.5 * sigmab
     return hp.gauss_beam(fwhm, lmax)
 
-def fl_itr(fl, pcl, bcl, mll):
+def fl_itr(fl, bcl, pcl, mll):
     return fl +  (pcl - mll @ (fl * bcl) ) / bcl
 
-def get_fl(cl, pcl, bl, mll, fskyw2, cl_th, niter=3):
-    bcl = bl**2 * cl
-    fl_i = pcl / (bl**2 * cl_th * fskyw2)
-    fl_i[:2] = 0
+def get_fl(pcl, bl, mll, cl_th, niter=1):
+    bcl = bl**2 * cl_th
+    fl_i = np.ones_like(pcl)
     for j in range(niter):        
-        fl_i = fl_itr(fl_i, pcl, bcl, mll)
+        fl_i = fl_itr(fl_i, bcl, pcl, mll)
         fl_i[:2] = 0
     return fl_i
 

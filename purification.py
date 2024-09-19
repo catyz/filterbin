@@ -9,7 +9,7 @@ def main():
     v = np.load(f'{prefix}/eigenvectors.npy')
     # cut = 1.02
     # n_v = np.where(eigs >= cut)[0]
-    n_v = 3000
+    n_v = 7000
     pure_b = v[:, -n_v:]
     print(f'using {pure_b.shape[1]} out of {v.shape[1]} eigenvectors, smallest eig {eigs[-n_v]}')
     

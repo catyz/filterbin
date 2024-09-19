@@ -4,6 +4,25 @@ import matplotlib.pyplot as plt
 import pymaster as nmt
 from tqdm import tqdm
 import scipy.signal as signal
+import camb
+
+def get_camb(Alens, r, lmax):
+    pars = camb.read_ini('https://raw.githubusercontent.com/cmbant/CAMB/master/inifiles/planck_2018.ini')
+    pars.Alens = Alens
+    if r != 0:
+        pars.WantTensors=True
+        pars.InitPower.set_params(r=r)
+    results = camb.get_results(pars)
+    return results.get_total_cls(lmax, 'muK', True).T
+
+def get_weight(nside):
+    qq, qu, uu = hp.read_map(f'obsmat_nside{nside}/out/0/filterbin_invcov.fits', field=[3,4,5])
+    mask = np.zeros(12*nside**2)
+    mask[qq!=0] = 1
+    tr = qq + uu
+    det = qq * uu - qu * qu
+    weight = 0.5 * (tr - np.sqrt(tr ** 2 - 4 * det) ) 
+    return mask, weight 
 
 def tod_filter(m, pix, deg=10):
     npix = 12*hp.get_nside(m)**2
@@ -77,7 +96,7 @@ def get_mask(nside):
                  (ph > -np.pi / 3) & (ph < np.pi / 3))[0]] = 1.
     return msk
 
-def get_Nl(noise_props, lmax):
+def get_Nl(noise_props, lmax, beam_fwhm=0):
     depth_ukarcmin, knee, alpha = noise_props
     n = (np.pi/(180*60) * depth_ukarcmin)**2
     l = np.arange(lmax+1)
@@ -87,8 +106,8 @@ def get_Nl(noise_props, lmax):
     else:
         Nl = n * np.ones(len(l))
         
-#     if beam_fwhm != 0:
-#         Nl *= np.exp(l*(l+1) * beam_fwhm **2 / 8/np.log(2))
+    if beam_fwhm != 0:
+        Nl *= np.exp(l*(l+1) * beam_fwhm **2 / 8/np.log(2))
         
     Nl[0] = 0 
     Nl[1] = 0 

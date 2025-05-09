@@ -7,9 +7,9 @@ def main():
     print('loading gep results')
     eigs = np.load(f'{prefix}/eigenvalues.npy')
     v = np.load(f'{prefix}/eigenvectors.npy')
-    # cut = 1.02
-    # n_v = np.where(eigs >= cut)[0]
-    n_v = 7000
+    cut = 1.02
+    n_v = len(np.where(eigs >= cut)[0])
+    # n_v = 7250
     pure_b = v[:, -n_v:]
     print(f'using {pure_b.shape[1]} out of {v.shape[1]} eigenvectors, smallest eig {eigs[-n_v]}')
     
